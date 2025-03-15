@@ -1,0 +1,47 @@
+ntrajs: 0
+nsteps_online: 1000
+load_data: 0
+network_path: 
+data_folder: /home/vipin-agrawal/active_pflows/lowd_cates/standard_EN
+bs: 32
+bs_stats: 64
+bs_online: 10000
+dt: 0.001
+dt_online: 0.001
+w0: 0.0
+N: 64
+v0: 0.0
+phi: 0.5
+A: 0.05
+k: 2.5
+beta: 7.5
+gamma: 0.1
+eps: 0.1
+lamb1: 1.0
+lamb2: 1.0
+lamb3: 1.0
+lamb4: 0.0
+network_type: 'transformer'
+shift_network: 1
+embed_dim: 256
+embed_n_neurons: 256
+num_layers: 4
+embed_n_hidden: 2
+decode_n_hidden: 2
+num_heads: 4
+n_layers_feedforward: 1
+n_inducing_points: 0
+n_neighbors: 0
+particle_wise_encode:
+particle_wise_decode:
+pool_before_decode:
+this_particle_pool:
+network_scale:
+learning_rate: 0.001
+decay_steps: 
+wandb_name: 7_26_23_N64_smaller_dt
+output_name: 7_26_23_N64_smaller_dt
+loss_type: score_matching
+use_skilling_hutch: 
+output_folder: /home/vipin-agrawal/active_pflows/lowd_cates/7_26_23
+slurm_id: 

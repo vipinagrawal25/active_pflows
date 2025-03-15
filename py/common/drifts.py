@@ -3,12 +3,10 @@ Nicholas M. Boffi
 
 Drifts for MIPS simulations.
 """
-
 import jax
 from jax import vmap
 import jax.numpy as np
 from typing import Tuple
-
 
 def wrapped_diff(x: np.ndarray, y: np.ndarray, width: float) -> float:
     """Compute wrapped single-coordinate differences on a periodic
@@ -89,10 +87,8 @@ def mips(
 
     return np.concatenate((xdots, gdots))
 
-
 def torus_project(xs: np.ndarray, width: float):
     return ((xs + width) % (2 * width)) - width
-
 
 def step_mips_OU_EM(
     xgs: np.ndarray,  # [2N, d]

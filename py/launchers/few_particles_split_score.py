@@ -15,7 +15,6 @@ from ml_collections import config_dict
 from copy import deepcopy
 import argparse
 
-
 import time
 import matplotlib as mpl
 from matplotlib import pyplot as plt
@@ -23,7 +22,6 @@ import seaborn as sns
 import functools
 from tqdm.auto import tqdm as tqdm
 import wandb
-
 
 import haiku as hk
 from flax.jax_utils import replicate, unreplicate
@@ -35,7 +33,7 @@ import common.networks as networks
 import common.losses as losses
 import common.drifts as drifts
 from typing import Callable, Tuple
-
+import yaml
 
 ###### sensible matplotlib defaults ######
 mpl.rcParams["axes.grid"] = True
@@ -54,7 +52,6 @@ mpl.rcParams["legend.fontsize"] = 7.5
 mpl.rcParams["figure.dpi"] = 300
 #########################################
 
-
 ########## Dataset ###############
 @functools.partial(jax.jit, static_argnums=2)
 def rollout(
@@ -69,26 +66,21 @@ def rollout(
     xg_final, xg_traj = jax.lax.scan(scan_fn, init_xg, noises)
     return xg_final, xg_traj
 
-
 @functools.partial(jax.jit, static_argnums=2)
 def rollout_trajs(
     init_xgs: np.ndarray,  # [ntrajs, 2*N*d]
     noises: np.ndarray,  # [ntrajs, nsteps, 2*N, d]
     cfg: config_dict.FrozenConfigDict,
 ) -> np.ndarray:
-    return jax.vmap(lambda init_xg, traj_noises: rollout(cfg, init_xg, traj_noises)[0])(
-        init_xgs, noises
-    )
-
+    return jax.vmap(lambda init_xg, traj_noises: rollout(init_xg, traj_noises, cfg)[0])(init_xgs, noises)
 
 def generate_data(
-    cfg: config_dict.ConfigDict, key: np.ndarray, load_data: bool
-) -> Tuple[np.ndarray, np.ndarray]:
+    cfg: config_dict.ConfigDict, key: np.ndarray, load_data: bool) -> Tuple[np.ndarray, np.ndarray]:
     """Generate a dataset from the example problem."""
     if load_data:
         # load in the data
         cfg.load_data = True
-        cfg.data_folder = args.data_folder
+        cfg.data_folder = args['data_folder']
 
         try:
             data_name = (
@@ -120,7 +112,7 @@ def generate_data(
         xgs = onp.concatenate((xs, gs), axis=1)
         nbatches_rollout = int(cfg.nsteps / cfg.max_n_steps) + 1
         cfg = config_dict.FrozenConfigDict(cfg)
-
+        
         start_time = time.time()
         print(f"Starting data generation.")
         for curr_batch in range(nbatches_rollout):
@@ -131,10 +123,7 @@ def generate_data(
             key = jax.random.split(key)[0]
         end_time = time.time()
         print(f"Finished data generation. Total time={(end_time-start_time)/60.}m")
-
         return onp.array(xgs), key, cfg
-
-
 ##################################
 
 
@@ -644,8 +633,6 @@ def compute_convergence_statistics(
 
 
 ##############################
-
-
 def step_data(
     xgs: onp.ndarray,  # [ntrajs, 2N, d]
     prng_key: np.ndarray,
@@ -823,59 +810,12 @@ def setup_loss(cfg: config_dict.ConfigDict) -> Callable:
 
 def get_simulation_parameters():
     """Process command line arguments and set up associated simulation parameters."""
-    parser = argparse.ArgumentParser(
-        description="Run a one-d mips simulation from the command line."
-    )
-    parser.add_argument("--ntrajs", type=int)
-    parser.add_argument("--nsteps_online", type=int)
-    parser.add_argument("--load_data", type=int)
-    parser.add_argument("--network_path", type=str)
-    parser.add_argument("--data_folder", type=str)
-    parser.add_argument("--bs", type=int)
-    parser.add_argument("--bs_stats", type=int)
-    parser.add_argument("--bs_online", type=int)
-    parser.add_argument("--dt", type=float)
-    parser.add_argument("--dt_online", type=float)
-    parser.add_argument("--w0", type=float)
-    parser.add_argument("--N", type=int)
-    parser.add_argument("--v0", type=float)
-    parser.add_argument("--phi", type=float)
-    parser.add_argument("--A", type=float)
-    parser.add_argument("--k", type=float)
-    parser.add_argument("--beta", type=float)
-    parser.add_argument("--gamma", type=float)
-    parser.add_argument("--eps", type=float)
-    parser.add_argument("--lamb1", type=float)
-    parser.add_argument("--lamb2", type=float)
-    parser.add_argument("--lamb3", type=float)
-    parser.add_argument("--lamb4", type=float)
-    parser.add_argument("--network_type", type=str)
-    parser.add_argument("--shift_network", type=int)
-    parser.add_argument("--embed_dim", type=int)
-    parser.add_argument("--embed_n_neurons", type=int)
-    parser.add_argument("--num_layers", type=int)
-    parser.add_argument("--embed_n_hidden", type=int)
-    parser.add_argument("--decode_n_hidden", type=int)
-    parser.add_argument("--num_heads", type=int)
-    parser.add_argument("--n_layers_feedforward", type=int)
-    parser.add_argument("--n_inducing_points", type=int)
-    parser.add_argument("--n_neighbors", type=int)
-    parser.add_argument("--particle_wise_encode", type=int)
-    parser.add_argument("--particle_wise_decode", type=int)
-    parser.add_argument("--pool_before_decode", type=int)
-    parser.add_argument("--this_particle_pool", type=int)
-    parser.add_argument("--network_scale", type=float)
-    parser.add_argument("--learning_rate", type=float)
-    parser.add_argument("--decay_steps", type=int)
-    parser.add_argument("--wandb_name", type=str)
-    parser.add_argument("--output_name", type=str)
-    parser.add_argument("--loss_type", type=str)
-    parser.add_argument("--use_skilling_hutch", type=int)
-    parser.add_argument("--output_folder", type=str)
-    parser.add_argument("--slurm_id", type=int)
-
-    return parser.parse_args()
-
+    with open(r'input.yaml') as file:
+        config = yaml.full_load(file)
+    # print(config)
+    # for key, value in config.items():
+    #     print(f"{key}: {value}")
+    return config
 
 def setup_config_dict():
     cfg = config_dict.ConfigDict()
@@ -907,51 +847,52 @@ def setup_config_dict():
 
     ## input parameters
     args = get_simulation_parameters()
-    cfg.nsteps_online = args.nsteps_online
-    cfg.loss_type = args.loss_type
-    cfg.use_skilling_hutch = args.use_skilling_hutch
-    cfg.ntrajs = args.ntrajs
-    cfg.v0 = args.v0
-    cfg.phi = args.phi
-    cfg.A = args.A
-    cfg.k = args.k
-    cfg.beta = args.beta
-    cfg.dt = args.dt
-    cfg.dt_online = args.dt_online
-    cfg.N = args.N
-    cfg.gamma = args.gamma
-    cfg.eps = args.eps
-    cfg.lamb1 = args.lamb1
-    cfg.lamb2 = args.lamb2
-    cfg.lamb3 = args.lamb3
-    cfg.lamb4 = args.lamb4
+    cfg.nsteps_online = args['nsteps_online']
+    cfg.loss_type = args['loss_type']
+    cfg.use_skilling_hutch = args['use_skilling_hutch']
+    cfg.ntrajs = args['ntrajs']
+    cfg.v0 = args['v0']
+    if 'phi' in args:
+        cfg.phi = args['phi']
+    cfg.A = args['A']
+    cfg.k = args['k']
+    cfg.beta = args['beta']
+    cfg.dt = args['dt']
+    cfg.dt_online = args['dt_online']
+    cfg.N = args['N']
+    cfg.gamma = args['gamma']
+    cfg.eps = args['eps']
+    cfg.lamb1 = args['lamb1']
+    cfg.lamb2 = args['lamb2']
+    cfg.lamb3 = args['lamb3']
+    cfg.lamb4 = args['lamb4']
     cfg.ema_facs = [0.999, 0.9999]
-    cfg.w0 = args.w0
-    cfg.shift_network = args.shift_network
-    cfg.network_type = args.network_type
-    cfg.embed_dim = args.embed_dim
-    cfg.embed_n_neurons = args.embed_n_neurons
+    cfg.w0 = args['w0']
+    cfg.shift_network = args['shift_network']
+    cfg.network_type = args['network_type']
+    cfg.embed_dim = args['embed_dim']
+    cfg.embed_n_neurons = args['embed_n_neurons']
     cfg.dim_feedforward = cfg.embed_dim
-    cfg.num_layers = args.num_layers
-    cfg.embed_n_hidden = args.embed_n_hidden
-    cfg.decode_n_hidden = args.decode_n_hidden
-    cfg.num_heads = args.num_heads
-    cfg.n_layers_feedforward = args.n_layers_feedforward
-    cfg.n_inducing_points = args.n_inducing_points
-    cfg.n_neighbors = args.n_neighbors
-    cfg.particle_wise_encode = args.particle_wise_encode
-    cfg.particle_wise_decode = args.particle_wise_decode
-    cfg.pool_before_decode = args.pool_before_decode
-    cfg.this_particle_pool = args.this_particle_pool
-    cfg.network_scale = args.network_scale
-    cfg.learning_rate = args.learning_rate
-    cfg.decay_steps = args.decay_steps
-    cfg.wandb_name = f"{args.wandb_name}_{args.slurm_id}"
-    cfg.output_folder = args.output_folder
-    cfg.output_name = f"{args.output_name}_{args.slurm_id}"
-    cfg.bs = args.bs
-    cfg.bs_stats = args.bs_stats
-    cfg.bs_online = args.bs_online
+    cfg.num_layers = args['num_layers']
+    cfg.embed_n_hidden = args['embed_n_hidden']
+    cfg.decode_n_hidden = args['decode_n_hidden']
+    cfg.num_heads = args['num_heads']
+    cfg.n_layers_feedforward = args['n_layers_feedforward']
+    cfg.n_inducing_points = args['n_inducing_points']
+    cfg.n_neighbors = args['n_neighbors']
+    cfg.particle_wise_encode = args['particle_wise_encode']
+    cfg.particle_wise_decode = args['particle_wise_decode']
+    cfg.pool_before_decode = args['pool_before_decode']
+    cfg.this_particle_pool = args['this_particle_pool']
+    cfg.network_scale = args['network_scale']
+    cfg.learning_rate = args['learning_rate']
+    cfg.decay_steps = args['decay_steps']
+    cfg.wandb_name = f"{args['wandb_name']}_{args['slurm_id']}"
+    cfg.output_folder = args['output_folder']
+    cfg.output_name = f"{args['output_name']}_{args['slurm_id']}"
+    cfg.bs = args['bs']
+    cfg.bs_stats = args['bs_stats']
+    cfg.bs_online = args['bs_online']
     cfg.nbatches = int(cfg.ntrajs / cfg.bs)
     cfg.nbatches_stats = int(cfg.bs / cfg.bs_stats)
     cfg.nbatches_online = int(cfg.nbatches / cfg.bs_online)
@@ -1012,8 +953,8 @@ def construct_network(
 
 
 def initialize_network(prng_key: np.ndarray):
-    if args.network_path != "":
-        loaded_dict = pickle.load(open(args.network_path, "rb"))
+    if args['network_path'] != "":
+        loaded_dict = pickle.load(open(args['network_path'], "rb"))
 
         try:
             print("For backwards compatibility, loading from params_list.")
@@ -1042,10 +983,7 @@ def initialize_network(prng_key: np.ndarray):
         )
 
     return params, prng_key
-
-
 #####################
-
 
 #### Helper Functions ######
 @jax.jit
@@ -1137,51 +1075,49 @@ def define_shift_functions(
 
     return shift_func, particle_div_shift_func, div_shift_func
 
-
 #######################
-
 if __name__ == "__main__":
     ## set up the simulation environment
     cfg, args = setup_config_dict()
     prng_key = jax.random.PRNGKey(onp.random.randint(1000))
 
-    ## generate or load a dataset for learning
-    xgs, prng_key, cfg = generate_data(cfg, prng_key, args.load_data)
+    # ## generate or load a dataset for learning
+    xgs, prng_key, cfg = generate_data(cfg, prng_key, args['load_data'])
 
-    ## define and initialize the neural network
+    # ## define and initialize the neural network
     score_net, particle_div_net, div_net, map_score_net = construct_network(cfg)
     params, prng_key = initialize_network(prng_key)
-    compute_output_info = functools.partial(
-        compute_output_info, score_net=score_net, particle_div_net=particle_div_net
-    )
+    # compute_output_info = functools.partial(
+    #     compute_output_info, score_net=score_net, particle_div_net=particle_div_net
+    # )
 
-    ## define optimizer
-    schedule = optax.warmup_cosine_decay_schedule(
-        init_value=0.0,
-        peak_value=cfg.learning_rate,
-        warmup_steps=int(1e4),
-        decay_steps=int(cfg.decay_steps),
-    )
+    # ## define optimizer
+    # schedule = optax.warmup_cosine_decay_schedule(
+    #     init_value=0.0,
+    #     peak_value=cfg.learning_rate,
+    #     warmup_steps=int(1e4),
+    #     decay_steps=int(cfg.decay_steps),
+    # )
 
-    opt = optax.chain(
-        optax.clip_by_global_norm(cfg.clip), optax.radam(learning_rate=schedule)
-    )
+    # opt = optax.chain(
+    #     optax.clip_by_global_norm(cfg.clip), optax.radam(learning_rate=schedule)
+    # )
 
-    # for parallel training
-    opt_state = replicate(opt.init(params))
+    # # for parallel training
+    # opt_state = replicate(opt.init(params))
 
-    ## set up weights and biases tracking
-    wandb.init(
-        project="",
-        name=cfg.wandb_name,
-        config=cfg.to_dict(),
-    )
+    # ## set up weights and biases tracking
+    # wandb.init(
+    #     project="",
+    #     name=cfg.wandb_name,
+    #     config=cfg.to_dict(),
+    # )
 
-    ## train the model
-    data = {
-        "params": jax.device_put(params, jax.devices("cpu")[0]),
-        "xgs": xgs,
-        "cfg": cfg,
-    }
-
-    train_loop(prng_key, opt, opt_state, data, cfg)
+    # ## train the model
+    # data = {
+    #     "params": jax.device_put(params, jax.devices("cpu")[0]),
+    #     "xgs": xgs,
+    #     "cfg": cfg,
+    
+    
+    # train_loop(prng_key, opt, opt_state, data, cfg)

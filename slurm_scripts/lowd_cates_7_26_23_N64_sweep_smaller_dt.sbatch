@@ -8,7 +8,6 @@
 #SBATCH --output=/scratch/nb3397/results/mips/lowd_cates/7_26_23/output/%A_%a.out
 #SBATCH --error=/scratch/nb3397/results/mips/lowd_cates/7_26_23/output/%A_%a.err
 
-
 ## convenience definitions
 SINGULARITY_IMAGE=/scratch/work/public/singularity/cuda11.8.86-cudnn8.7-devel-ubuntu22.04.2.sif
 OVERLAY_FILE=/scratch/nb3397/technical/singularity_setup/jax.ext3:ro
@@ -16,19 +15,16 @@ PY_DIR=/scratch/nb3397/projects/mips_project/mips/py/launchers
 output=/scratch/nb3397/results/mips/lowd_cates/7_26_23
 launcher_file=few_particles_split_score.py
 
-
 # remove all modules
 module purge
 loss_type="score_matching"
-
 
 ind=$SLURM_ARRAY_TASK_ID
 v0s=(0.0 0.2)
 i=$((ind % 2))
 v0=${v0s[$i]}
 
-
-singularity exec --nv --overlay $OVERLAY_FILE $SINGULARITY_IMAGE \
+singularity exec --nv --overlay \
 	/bin/bash -c "source /ext3/env.sh; \
 	cd $PY_DIR; \
 	python $launcher_file \
@@ -38,6 +34,7 @@ singularity exec --nv --overlay $OVERLAY_FILE $SINGULARITY_IMAGE \
 	--network_path '' \
 	--data_folder /scratch/nb3397/projects/mips_project/dataset/lowd_cates/standard_EM \
 	--bs 32 \
+	--bs_stats 64\
 	--bs_online 10000 \
 	--dt 0.001 \
 	--dt_online 0.001 \
@@ -71,3 +68,4 @@ singularity exec --nv --overlay $OVERLAY_FILE $SINGULARITY_IMAGE \
 	--output_folder $output \
 	--slurm_id $ind"
 exit
+

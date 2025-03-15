@@ -4,7 +4,6 @@ Nicholas M. Boffi
 
 Generate a dataset for the MIPS system.
 """
-
 import jax
 import numpy as onp
 from jax import numpy as np

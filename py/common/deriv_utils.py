@@ -10,7 +10,6 @@ import jax.numpy as np
 import functools
 from typing import Callable
 
-
 def single_partial(
     f: Callable[[np.ndarray], np.ndarray],  # [N, d] -> [N, d]
     inp: np.ndarray,  # [N, d]
@@ -22,7 +21,6 @@ def single_partial(
     unit_vector = unit_vector.at[i, j].set(1.0)
 
     return jax.jvp(f, (inp,), (unit_vector,))[1][i, j]
-
 
 @functools.partial(jax.jit, static_argnums=0)
 def vector_div(
@@ -41,7 +39,6 @@ def vector_div(
         )(f, inp, np.arange(inp.shape[0]), np.arange(inp.shape[1])),
         axis=-1,
     )
-
 
 @functools.partial(jax.jit, static_argnums=0)
 def scalar_div(
