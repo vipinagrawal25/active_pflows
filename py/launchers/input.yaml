@@ -1,4 +1,4 @@
-ntrajs: 0
+ntrajs: 1
 nsteps_online: 1000
 load_data: 0
 network_path: 

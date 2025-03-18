@@ -108,6 +108,7 @@ def generate_data(
         xs = drifts.torus_project(
             cfg.sig0x * onp.random.randn(cfg.ntrajs, cfg.N, cfg.d), cfg.width
         )
+        print( onp.random.randn(cfg.ntrajs, cfg.N, cfg.d) )
         gs = cfg.sig0g * onp.random.randn(cfg.ntrajs, cfg.N, cfg.d)
         xgs = onp.concatenate((xs, gs), axis=1)
         nbatches_rollout = int(cfg.nsteps / cfg.max_n_steps) + 1
@@ -125,7 +126,6 @@ def generate_data(
         print(f"Finished data generation. Total time={(end_time-start_time)/60.}m")
         return onp.array(xgs), key, cfg
 ##################################
-
 
 ######## Losses #######
 def sm_sample_loss(
@@ -650,7 +650,6 @@ def step_data(
 
     return xgs, prng_key
 
-
 def setup_loss_fn_args(
     xs: np.ndarray,  # [ntrajs, N, d]
     gs: np.ndarray,  # [ntrajs, N, d]
@@ -953,7 +952,8 @@ def construct_network(
 
 
 def initialize_network(prng_key: np.ndarray):
-    if args['network_path'] != "":
+    # print(args['network_path'])
+    if args['network_path'] != None:
         loaded_dict = pickle.load(open(args['network_path'], "rb"))
 
         try:
@@ -1087,6 +1087,7 @@ if __name__ == "__main__":
     # ## define and initialize the neural network
     score_net, particle_div_net, div_net, map_score_net = construct_network(cfg)
     params, prng_key = initialize_network(prng_key)
+
     # compute_output_info = functools.partial(
     #     compute_output_info, score_net=score_net, particle_div_net=particle_div_net
     # )
