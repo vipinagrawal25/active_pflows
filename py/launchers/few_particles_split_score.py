@@ -950,7 +950,6 @@ def construct_network(
 
     return score_net, particle_div_net, div_net, map_score_net
 
-
 def initialize_network(prng_key: np.ndarray):
     # print(args['network_path'])
     if args['network_path'] != None:
@@ -1086,7 +1085,8 @@ if __name__ == "__main__":
 
     # ## define and initialize the neural network
     score_net, particle_div_net, div_net, map_score_net = construct_network(cfg)
-    params, prng_key = initialize_network(prng_key)
+    print(prng_key)
+    # params, prng_key = initialize_network(prng_key)
 
     # compute_output_info = functools.partial(
     #     compute_output_info, score_net=score_net, particle_div_net=particle_div_net
