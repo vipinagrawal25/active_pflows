@@ -72,7 +72,8 @@ def rollout_trajs(
     noises: np.ndarray,  # [ntrajs, nsteps, 2*N, d]
     cfg: config_dict.FrozenConfigDict,
 ) -> np.ndarray:
-    return jax.vmap(lambda init_xg, traj_noises: rollout(init_xg, traj_noises, cfg)[0])(init_xgs, noises)
+    cfg_hashable = tuple(sorted(cfg.items()))
+    return jax.vmap(lambda init_xg, traj_noises: rollout(init_xg, traj_noises, cfg_hashable)[0])(init_xgs, noises)
 
 def generate_data(
     cfg: config_dict.ConfigDict, key: np.ndarray, load_data: bool) -> Tuple[np.ndarray, np.ndarray]:
@@ -108,12 +109,11 @@ def generate_data(
         xs = drifts.torus_project(
             cfg.sig0x * onp.random.randn(cfg.ntrajs, cfg.N, cfg.d), cfg.width
         )
-        print( onp.random.randn(cfg.ntrajs, cfg.N, cfg.d) )
         gs = cfg.sig0g * onp.random.randn(cfg.ntrajs, cfg.N, cfg.d)
         xgs = onp.concatenate((xs, gs), axis=1)
         nbatches_rollout = int(cfg.nsteps / cfg.max_n_steps) + 1
         cfg = config_dict.FrozenConfigDict(cfg)
-        
+
         start_time = time.time()
         print(f"Starting data generation.")
         for curr_batch in range(nbatches_rollout):
@@ -126,6 +126,7 @@ def generate_data(
         print(f"Finished data generation. Total time={(end_time-start_time)/60.}m")
         return onp.array(xgs), key, cfg
 ##################################
+
 
 ######## Losses #######
 def sm_sample_loss(
@@ -596,7 +597,6 @@ def make_entropy_plot(
 
     wandb.log({"entropy_figure": wandb.Image(fig)})
 
-
 def compute_sample_convergence_statistics(
     params: Dict[str, hk.Params],
     xgs: np.ndarray,  # [2*N, d]
@@ -649,6 +649,7 @@ def step_data(
         prng_key = jax.random.split(prng_key)[0]
 
     return xgs, prng_key
+
 
 def setup_loss_fn_args(
     xs: np.ndarray,  # [ntrajs, N, d]
@@ -737,7 +738,6 @@ def log_metrics(
         )
 
     return data
-
 
 def train_loop(
     prng_key: np.ndarray,
@@ -950,9 +950,9 @@ def construct_network(
 
     return score_net, particle_div_net, div_net, map_score_net
 
+
 def initialize_network(prng_key: np.ndarray):
-    # print(args['network_path'])
-    if args['network_path'] != None:
+    if args['network_path'] != "":
         loaded_dict = pickle.load(open(args['network_path'], "rb"))
 
         try:
@@ -983,6 +983,7 @@ def initialize_network(prng_key: np.ndarray):
 
     return params, prng_key
 #####################
+
 
 #### Helper Functions ######
 @jax.jit
@@ -1084,10 +1085,8 @@ if __name__ == "__main__":
     xgs, prng_key, cfg = generate_data(cfg, prng_key, args['load_data'])
 
     # ## define and initialize the neural network
-    score_net, particle_div_net, div_net, map_score_net = construct_network(cfg)
-    print(prng_key)
+    # score_net, particle_div_net, div_net, map_score_net = construct_network(cfg)
     # params, prng_key = initialize_network(prng_key)
-
     # compute_output_info = functools.partial(
     #     compute_output_info, score_net=score_net, particle_div_net=particle_div_net
     # )
@@ -1119,6 +1118,6 @@ if __name__ == "__main__":
     #     "params": jax.device_put(params, jax.devices("cpu")[0]),
     #     "xgs": xgs,
     #     "cfg": cfg,
-    
-    
+    # }
+
     # train_loop(prng_key, opt, opt_state, data, cfg)
