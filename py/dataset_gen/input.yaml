@@ -1,0 +1,21 @@
+gamma: 0.1
+eps: 0.1
+v0: 0.0
+k: 2.5
+A: 0.05
+beta: 7.5
+phi: 0.5
+dt: 0.001
+tspace: 1
+tf: 100
+width: 
+r: 1
+d: 1
+N: 2
+ndata: 1000000
+output_folder: /Users/vipin/Academia/NU/active_pflows/py/dataset_gen/data/
+nbatches: 1
+nbatches_space: 1
+thermalize_fac: 1
+load_thermalized: False
+thermalized_location: /Users/vipin/Academia/NU/active_pflows/py/dataset_gen/data/

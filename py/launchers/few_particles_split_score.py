@@ -5,7 +5,6 @@ Nicholas M. Boffi
 Code for systematic simulations of the Cates system with few particles.
 Split the learning of the score into separate x and g scores.
 """
-
 import jax
 import jax.numpy as np
 import numpy as onp
@@ -72,8 +71,7 @@ def rollout_trajs(
     noises: np.ndarray,  # [ntrajs, nsteps, 2*N, d]
     cfg: config_dict.FrozenConfigDict,
 ) -> np.ndarray:
-    cfg_hashable = tuple(sorted(cfg.items()))
-    return jax.vmap(lambda init_xg, traj_noises: rollout(init_xg, traj_noises, cfg_hashable)[0])(init_xgs, noises)
+    return jax.vmap(lambda init_xg, traj_noises: rollout(init_xg, traj_noises, cfg)[0])(init_xgs, noises)
 
 def generate_data(
     cfg: config_dict.ConfigDict, key: np.ndarray, load_data: bool) -> Tuple[np.ndarray, np.ndarray]:
@@ -113,7 +111,7 @@ def generate_data(
         xgs = onp.concatenate((xs, gs), axis=1)
         nbatches_rollout = int(cfg.nsteps / cfg.max_n_steps) + 1
         cfg = config_dict.FrozenConfigDict(cfg)
-
+        
         start_time = time.time()
         print(f"Starting data generation.")
         for curr_batch in range(nbatches_rollout):
@@ -597,6 +595,7 @@ def make_entropy_plot(
 
     wandb.log({"entropy_figure": wandb.Image(fig)})
 
+
 def compute_sample_convergence_statistics(
     params: Dict[str, hk.Params],
     xgs: np.ndarray,  # [2*N, d]
@@ -738,6 +737,7 @@ def log_metrics(
         )
 
     return data
+
 
 def train_loop(
     prng_key: np.ndarray,
@@ -982,9 +982,6 @@ def initialize_network(prng_key: np.ndarray):
         )
 
     return params, prng_key
-#####################
-
-
 #### Helper Functions ######
 @jax.jit
 def update_ema_params(
@@ -1085,8 +1082,8 @@ if __name__ == "__main__":
     xgs, prng_key, cfg = generate_data(cfg, prng_key, args['load_data'])
 
     # ## define and initialize the neural network
-    # score_net, particle_div_net, div_net, map_score_net = construct_network(cfg)
-    # params, prng_key = initialize_network(prng_key)
+    score_net, particle_div_net, div_net, map_score_net = construct_network(cfg)
+    params, prng_key = initialize_network(prng_key)
     # compute_output_info = functools.partial(
     #     compute_output_info, score_net=score_net, particle_div_net=particle_div_net
     # )
@@ -1118,6 +1115,6 @@ if __name__ == "__main__":
     #     "params": jax.device_put(params, jax.devices("cpu")[0]),
     #     "xgs": xgs,
     #     "cfg": cfg,
-    # }
-
+    
+    
     # train_loop(prng_key, opt, opt_state, data, cfg)

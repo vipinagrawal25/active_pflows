@@ -62,7 +62,6 @@ def construct_simulation(args):
 
     return sim
 
-
 def get_simulation_parameters():
     """Process command line arguments and set up associated simulation parameters."""
     parser = argparse.ArgumentParser(
@@ -106,7 +105,6 @@ def get_simulation_parameters():
     )
 
     return parser.parse_args()
-
 
 if __name__ == "__main__":
     sim = construct_simulation(get_simulation_parameters())

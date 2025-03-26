@@ -11,7 +11,6 @@ import time
 from tqdm.auto import tqdm as tqdm
 from pathlib import Path
 
-
 def rollout(
     init_xg: np.ndarray,  # [2N, d]
     noises: np.ndarray,  # [nsteps, N, d]
@@ -36,7 +35,6 @@ def rollout_trajs(
         init_xgs, noises
     )
 
-
 def generate_data() -> np.ndarray:
     xs = drifts.torus_project(sig0x * onp.random.randn(ntrajs, N, d), width)
     gs = sig0g * onp.random.randn(ntrajs, N, d)
@@ -53,7 +51,6 @@ def generate_data() -> np.ndarray:
     print(f"Finished data generation. Total time={(end_time-start_time)/60.}m")
 
     return onp.array(xgs)
-
 
 def get_cmd_arguments():
     parser = argparse.ArgumentParser()
@@ -72,7 +69,6 @@ def get_cmd_arguments():
     parser.add_argument("--output_folder", type=str)
     parser.add_argument("--slurm_id", type=int)
     return parser.parse_args()
-
 
 if __name__ == "__main__":
     ## standard system parameters

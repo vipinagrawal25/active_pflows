@@ -14,17 +14,14 @@ def wrapped_diff(x: np.ndarray, y: np.ndarray, width: float) -> float:
     d = x - y
     return d - 2 * width * np.rint(d / (2 * width))
 
-
 compute_wrapped_diffs = vmap(
     vmap(wrapped_diff, in_axes=(0, None, None), out_axes=0),
     in_axes=(None, 0, None),
     out_axes=1,
 )
 
-
 def softplus(x: np.ndarray, beta: float) -> np.ndarray:
     return jax.nn.softplus(beta * x) / beta
-
 
 def single_particle_elastic_interaction(
     xi: np.ndarray, xs: np.ndarray, r: float, N: int, L: float, beta: float
@@ -42,7 +39,6 @@ def single_particle_elastic_interaction(
         Fijs = softplus(2 * r - diff_norms, beta) * (diff_norms > 0)  # [N]
 
     return np.sum(Fijs[:, None] * directions, axis=0)  # [d]
-
 
 def elastic_interaction(
     xs: np.ndarray, radii: np.ndarray, N: int, L: float, beta: float

@@ -17,7 +17,7 @@ import argparse
 import time
 from functools import partial
 from tqdm.auto import tqdm as tqdm
-
+import yaml  # Add import for YAML
 
 @partial(jit, static_argnums=(6, 7))
 def rollout(
@@ -47,61 +47,41 @@ def rollout(
     xg_final, xg_traj = jax.lax.scan(scan_fn, init_xg, noises)
     return xg_final
 
-
-def get_cmd_arguments():
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--gamma", type=float)
-    parser.add_argument("--eps", type=float)
-    parser.add_argument("--v0", type=float)
-    parser.add_argument("--k", type=float)
-    parser.add_argument("--A", type=float)
-    parser.add_argument("--beta", type=float)
-    parser.add_argument("--phi", type=float)
-    parser.add_argument("--dt", type=float)
-    parser.add_argument("--N", type=int)
-    parser.add_argument("--ndata", type=int)
-    parser.add_argument("--nbatches", type=int)
-    parser.add_argument("--nbatches_space", type=int)
-    parser.add_argument("--tspace", type=float)
-    parser.add_argument("--thermalize_fac", type=float)
-    parser.add_argument("--load_thermalized", type=int)
-    parser.add_argument("--thermalized_location", type=str)
-    parser.add_argument("--output_folder", type=str)
-    parser.add_argument("--slurm_id", type=int)
-    return parser.parse_args()
-
+def load_parameters_from_yaml(file_path: str):
+    """Load parameters from a YAML file."""
+    with open(file_path, "r") as file:
+        return yaml.safe_load(file)
 
 if __name__ == "__main__":
     ## standard system parameters
-    print("Entering main. Loading command line arguments.")
+    print("Entering main. Loading parameters from input.yaml.")
     d = 2
     r = 1.0
     n_prints = 100
 
-    ## command line arguments
-    args = get_cmd_arguments()
-    gamma = args.gamma
-    N = args.N
-    v0 = args.v0
-    A = args.A
-    k = args.k
-    eps = args.eps
-    beta = args.beta
-    phi = args.phi
-    dt = args.dt
-    ndata = args.ndata
-    output_folder = args.output_folder
-    slurm_id = args.slurm_id
+    ## load parameters from input.yaml
+    params = load_parameters_from_yaml("input.yaml")
+    gamma = params["gamma"]
+    N = params["N"]
+    v0 = params["v0"]
+    A = params["A"]
+    k = params["k"]
+    eps = params["eps"]
+    beta = params["beta"]
+    phi = params["phi"]
+    dt = params["dt"]
+    ndata = params["ndata"]
+    output_folder = params["output_folder"]
     radii = onp.ones(N) * r
     width = np.sqrt(np.sum(radii**2) * np.pi / phi) / 2
     dim = 2 * N * d
     sig0x, sig0g = width / 2, 1.0
 
     ## thermalization parameters
-    nbatches = args.nbatches
-    nbatches_space = args.nbatches_space
-    thermalize_fac = args.thermalize_fac
-    tspace = args.tspace
+    nbatches = params["nbatches"]
+    nbatches_space = params["nbatches_space"]
+    thermalize_fac = params["thermalize_fac"]
+    tspace = params["tspace"]
     divide_fac = min(gamma, eps)
     divide_fac = max(gamma, eps) if divide_fac == 0 else divide_fac
     tf = thermalize_fac / divide_fac
@@ -148,9 +128,9 @@ if __name__ == "__main__":
     }
 
     ## thermalize
-    if args.load_thermalized:
+    if params["load_thermalized"]:
         print("Loading thermalized data.")
-        thermalized_data = pickle.load(open(args.thermalized_location, "rb"))
+        thermalized_data = pickle.load(open(params["thermalized_location"], "rb"))
         xgs = thermalized_data["traj"][-1]
     else:
         for curr_batch in tqdm(range(nbatches)):
