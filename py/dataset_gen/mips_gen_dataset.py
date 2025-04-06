@@ -164,11 +164,10 @@ if __name__ == "__main__":
                 end_time = time.time()
                 print(f"Finished data point {curr_datapt+1}/{ndata}.")
                 print(f"Total time: {(end_time - start_time)/60}m.")
-                start_time = time.time()
-                data_dict["traj"] = traj
+                start_time = time.time() data_dict["traj"] = traj
                 pickle.dump(data_dict, open(f"{output_folder}/{name}.npy", "wb"))
         except:
             print("Too few data points to print progress.")
 
     data_dict["traj"] = traj
-    pickle.dump(data_dict, open(f"{output_folder}/{name}_{slurm_id}.npy", "wb"))
+    pickle.dump(data_dict, open(f"{output_folder}/{name}.npy", "wb"))

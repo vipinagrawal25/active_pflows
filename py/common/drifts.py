@@ -23,22 +23,22 @@ compute_wrapped_diffs = vmap(
 def softplus(x: np.ndarray, beta: float) -> np.ndarray:
     return jax.nn.softplus(beta * x) / beta
 
-def single_particle_elastic_interaction(
-    xi: np.ndarray, xs: np.ndarray, r: float, N: int, L: float, beta: float
-) -> np.ndarray:
-    """Elastic interaction from the Marchetti paper."""
-    particle_diffs = vmap(lambda xj: wrapped_diff(xi, xj, L))(xs)  # [N, d]
-    diff_norms = np.linalg.norm(particle_diffs, axis=1)  # [N]
-    diff_norms = np.where(diff_norms == 0, -1, diff_norms)  # [N]
-    directions = particle_diffs / diff_norms[:, None]  # [N, d]
-    diff_norms = np.where(diff_norms == -1, 0, diff_norms)  # [N]
+# def single_particle_elastic_interaction(
+#     xi: np.ndarray, xs: np.ndarray, r: float, N: int, L: float, beta: float
+# ) -> np.ndarray:
+#     """Elastic interaction from the Marchetti paper."""
+#     particle_diffs = vmap(lambda xj: wrapped_diff(xi, xj, L))(xs)  # [N, d]
+#     diff_norms = np.linalg.norm(particle_diffs, axis=1)  # [N]
+#     diff_norms = np.where(diff_norms == 0, -1, diff_norms)  # [N]
+#     directions = particle_diffs / diff_norms[:, None]  # [N, d]
+#     diff_norms = np.where(diff_norms == -1, 0, diff_norms)  # [N]
 
-    if beta == 0 or beta == None:
-        raise NotImplementedError
-    else:
-        Fijs = softplus(2 * r - diff_norms, beta) * (diff_norms > 0)  # [N]
+#     if beta == 0 or beta == None:
+#         raise NotImplementedError
+#     else:
+#         Fijs = softplus(2 * r - diff_norms, beta) * (diff_norms > 0)  # [N]
 
-    return np.sum(Fijs[:, None] * directions, axis=0)  # [d]
+#     return np.sum(Fijs[:, None] * directions, axis=0)  # [d]
 
 def elastic_interaction(
     xs: np.ndarray, radii: np.ndarray, N: int, L: float, beta: float
@@ -111,6 +111,8 @@ def step_mips_OU_EM(
 
     # step x (EM)
     forces = elastic_interaction(xs, radii, N, width, beta)
+    # See eq. 25 for k
+    # is mu = 1?
     xdots = v0 * gs + k * np.sum(forces, axis=1) - A * xs
     xnexts = torus_project(xs + dt * xdots + np.sqrt(2 * eps * dt) * noise_x, width)
 
